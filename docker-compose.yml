@@ -1,0 +1,63 @@
+version: '3.6'
+
+# networks:
+#   network-zabbix-proxy:
+#     driver: bridge
+
+services:
+  zabbix-proxy:     # The main Zabbix Proxy 
+    build:
+      context: ./config
+      cache_from:
+        - zabbix/zabbix-proxy-sqlite3:ubuntu-6.0-latest
+    image: zabbix-proxy-sqlite3:ubuntu-local
+    # networks:
+    #   - network-zabbix-proxy
+    ports:
+      - "10061:10051"   # HOST:CONTAINER
+    env_file:
+      - ./config/.env   # environment variables <- config proxy here!
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro 
+      - ./config/etc/odbc.ini:/etc/odbc.ini:rw
+      - ./config/etc/odbcinst.ini:/etc/odbcinst.ini:rw
+      - ./config/usr/lib/zabbix/externalscripts:/usr/lib/zabbix/externalscripts:ro
+      - ./config/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
+      - ./config/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
+      - ./config/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
+      - ./config/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
+      - ./config/var/lib/zabbix/snmptraps:/var/lib/zabbix/snmptraps:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 16G
+        reservations:
+          cpus: '2'
+          memory: 8G
+    # user: root
+    stop_grace_period: 1m
+    restart: always
+    labels:
+      com.zabbix.description: "Zabbix proxy with SQLite3 database support"
+      com.zabbix.company: "Zabbix SIA"
+      com.zabbix.component: "zabbix-proxy"
+      com.zabbix.dbtype: "sqlite3"
+      com.zabbix.os: "ubuntu"
+
+  # zabbix-agent:   # Zabbix agent service that tracks usage and send to zabbix server
+  #   image: zabbix/zabbix-agent:latest
+  #   networks:
+  #     - network-zabbix
+  #   links:
+  #     - zabbix-server
+  #   privileged: true   #access mode for allowing resource access
+  # # network_mode: "host"
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /var/run:/var/run
+  #   ports:
+  #     - '10050:10050'
+  #   environment:
+  #     - ZBX_SERVER_HOST=172.18.0.3 #the IP/Dns of Zabbix server
